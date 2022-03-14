@@ -26,10 +26,11 @@ contract MarketPlace {
     event ItemPriceChanged(uint256 itemId, uint256 newPrice);
 
     using Counters for Counters.Counter;
-    Counters.Counter private _itemIds;
+    Counters.Counter internal _itemIds;
 
-    mapping(uint256 => Item) internal items;
-    Item[] itemList;
+    mapping(uint256 => Item) public items;
+
+    // Item[] itemList;
 
     constructor() {}
 
@@ -56,7 +57,7 @@ contract MarketPlace {
 
     function changeItemPrice(uint256 _itemId, uint256 _newPrice) external {
         Item storage item = items[_itemId];
-        require(item.isActive, "Inactive item");
+        require(item.isActive, "Item not active now");
         require(msg.sender == item.owner, "Only owner can change price");
         require(_newPrice > 0, "price must be greater than 0");
         item.price = _newPrice;
@@ -64,26 +65,40 @@ contract MarketPlace {
         emit ItemPriceChanged(_itemId, _newPrice);
     }
 
-    function getItem(uint256 _itemId) external view returns (Item memory) {
+    function getItem(uint256 _itemId)
+        external
+        view
+        returns (
+            string memory,
+            address,
+            uint256,
+            bool,
+            bool,
+            uint256
+        )
+    {
         Item storage item = items[_itemId];
-        return item;
+        return (
+            item.name,
+            item.owner,
+            item.price,
+            item.isSold,
+            item.isActive,
+            item.createdTimestamp
+        );
     }
 
-    function getItems() public returns (Item[] memory) {
-        uint256 itemCount = _itemIds.current();
-        for (uint256 i = 0; i < itemCount; i++) {
-            if (!items[i].isSold) {
-                itemList.push(items[i]);
-            }
-        }
-        return itemList;
+    function getItemsCount() external view returns (uint256) {
+        return _itemIds.current();
     }
 
     function purchaseItem(uint256 _itemId) external payable {
         Item storage item = items[_itemId];
         uint256 price = item.price;
         address payable seller = payable(item.owner);
-        require(msg.value >= price, "You should include the price of the item");
+        require(!item.isSold, "Item already sold");
+        require(item.isActive, "Item is not active now");
+        require(msg.value == price, "Amount not correct");
         require(msg.sender != seller, "seller can not buy its owned item");
 
         item.isSold = true;
