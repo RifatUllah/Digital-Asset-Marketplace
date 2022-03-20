@@ -30,8 +30,6 @@ contract MarketPlace {
 
     mapping(uint256 => Item) public items;
 
-    // Item[] itemList;
-
     constructor() {}
 
     function createItem(string memory _name, uint256 _price)
@@ -98,7 +96,7 @@ contract MarketPlace {
         address payable seller = payable(item.owner);
         require(!item.isSold, "Item already sold");
         require(item.isActive, "Item is not active now");
-        require(msg.value == price, "Amount not correct");
+        require(msg.value >= price, "Amount not correct");
         require(msg.sender != seller, "seller can not buy its owned item");
 
         item.isSold = true;
